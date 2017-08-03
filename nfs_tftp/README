@@ -1,0 +1,21 @@
+Vagrant file to spin-up a nfs/tftp server.
+Requirements:
+    Vagrant installed. currently tested on Version 1.9.1
+    Virtualbox installed. currently tested on Version 5.1.26 r117224 (Qt5.6.2)
+
+Currently will be serving on the interface "en9: Thunderbolt Ethernet Slot 3"
+
+To use:
+    vagrant up
+    vagrant ssh -c "ifconfig" to get the ip address.
+
+Note: I am generating a set of ssh-keys and adding it to its own authorized_key
+      so the vm can ssh into itself without password.
+
+      Usefull because in prod environment, we need to scp files to the nfs/tftp
+      server those files are usually created via a jenkins job, and scp-ed via a
+      script. For debug purpose, I'll be using this vm as to launch the same
+      scripts.
+
+Note2: username/password are vagrant/vagrant
+

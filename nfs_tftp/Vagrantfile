@@ -1,0 +1,64 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "box-cutter/ubuntu1610"
+  config.vm.define :nfs_tftp
+
+  config.vm.network "public_network", bridge: "en9: Thunderbolt Ethernet Slot 3"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "nfs_tftp"
+
+    # Display the VirtualBox GUI when booting the machine
+    vb.gui = false
+  end
+
+  config.vm.provision "shell", inline: <<-__EOF__
+    apt-get update
+
+    apt-get install -y sshpass
+    cat /dev/zero | ssh-keygen -q -N ""
+    cp /root/.ssh/id_rsa* /home/vagrant/.ssh/
+    if [ "$(cat /home/vagrant/.ssh/authorized_keys | grep 'root@vagrant')" == "" ]; then
+        cat /home/vagrant/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
+    fi
+    chown -R vagrant:vagrant /home/vagrant/.ssh/
+
+    apt-get install -y nfs-kernel-server
+    mkdir -p /srv/nfs
+    chmod -R 777 /srv
+    if [ "$(cat /etc/exports | grep '/srv/nfs ')" == "" ]; then
+        echo "/srv/nfs *(rw,sync,no_root_squash)" >> /etc/exports
+    fi
+    /etc/init.d/nfs-kernel-server restart
+
+    apt-get install -y tftpd
+    apt-get install -y tftp
+    apt-get install -y xinetd
+    mkdir -p /etc/xinetd.d/
+    cat > /etc/xinetd.d/tftp <<-_TFTP_
+	service tftp
+	{
+	    port            = 69
+	    disable         = no
+	    socket_type     = dgram
+	    protocol        = udp
+	    wait            = yes
+	    user            = root
+	    group           = root
+	    groups          = yes
+	    server          = /usr/sbin/in.tftpd
+	    bind            =  -u nobody
+	    server_args     = /srv
+	    per_source      = 11
+	    cps             = 100 2
+	    flags           = IPv4
+	    instances       = UNLIMITED
+	}
+	_TFTP_
+    /etc/init.d/xinetd restart
+
+  __EOF__
+
+end
