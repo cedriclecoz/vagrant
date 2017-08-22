@@ -1,0 +1,19 @@
+Vagrant file to spin-up a dhcp server.
+
+Requirements:
+    Vagrant installed. currently tested on Version 1.9.1
+    Virtualbox installed. currently tested on Version 5.1.26 r117224 (Qt5.6.2)
+    Have an interface to serve ips.
+
+Currently will be serving on the interface "en10", which is a usb dongle.
+
+
+To use:
+    vagrant up
+
+Note:
+    tcpdump is installed.
+
+Note2: 
+    username/password are vagrant/vagrant
+

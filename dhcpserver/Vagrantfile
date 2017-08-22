@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "box-cutter/ubuntu1610"
+  config.vm.define :dhcp_server
+
+  config.vm.network "public_network", bridge: "en10: AX88x72A", ip: "192.166.2.1"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "dhcp_server"
+    vb.gui = false
+  end
+
+  config.vm.provision "shell", inline: <<-__EOF__
+    apt-get update
+    apt-get install -y isc-dhcp-server
+    ifname=$(ip -o addr | grep 192.166.2.1 | awk -F' ' '{print $2}')
+    echo $ifname
+    sed -i "s/INTERFACES=.*/INTERFACES=\\\"$ifname\\\"/" /etc/default/isc-dhcp-server
+    dhcpDone=$(cat /etc/dhcp/dhcpd.conf | grep "#option domain-name")
+    if [ "$dhcpDone" == "" ]; then
+        echo "do dhcpd config"
+        sed -i "s/option domain-name/#option domain-name/g" /etc/dhcp/dhcpd.conf
+        echo 'subnet 192.166.2.0 netmask 255.255.255.0 {
+        range 192.166.2.10 192.166.2.20;
+        }' >> /etc/dhcp/dhcpd.conf 
+        echo 'restart dhcp server'
+        systemctl restart isc-dhcp-server
+    else
+        echo "dhcpd config already done"
+    fi
+    apt-get install -y tcpdump
+    echo "Serving ips on $ifname (192.166.2.1)"
+  __EOF__
+end
